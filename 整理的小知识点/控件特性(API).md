@@ -19,7 +19,7 @@
          [time setFireDate:[NSDate  distanPast]]
       // NSTimer   关闭  
         ［time  setFireDate:[NSDate  distantFunture]］
-      //继续。
+      //继续
         [timer setFireDate:[NSDate date]];
 
 ```
