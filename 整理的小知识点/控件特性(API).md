@@ -48,4 +48,10 @@ eg:
     NSLog(@"action:%@", timer);
 }
 ```
+**timer和runloop关系**
+
+[timer和runloop关系](https://github.com/binzi56/iOSSmallKnowledgePool/blob/master/整理的小知识点/resources/runloop与timer关系.png)
+
 * [NSTimer的使用](https://www.jianshu.com/p/3ccdda0679c1)
+
+## 
