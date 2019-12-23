@@ -156,3 +156,102 @@ do {
 ```
 if (!poll && (currentMode->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(runloop, currentMode, kCFRunLoopAfterWaiting);
 ```
+
+> 第六步
+`RunLoop` 被唤醒后就要开始处理消息了:
+* 如果是 `Timer` 时间到的话，就触发 `Timer` 的回调;
+* 如果是 `dispatch` 的话，就执行 `block`;
+* 如果是 `source1`事件的话，就处理这个事件。
+消息执行完后，就执行加到 `loop` 里的 `block`。
+
+代码如下:
+```
+handle_msg:
+// 如果 Timer 时间到，就触发 Timer 回调
+if (msg-is-timer) {
+    __CFRunLoopDoTimers(runloop, currentMode, mach_absolute_time())
+ }
+
+// 如果 dispatch 就执行 block
+else if (msg_is_dispatch) {
+    __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__(msg);
+}
+
+// Source1 事件的话，就处理这个事件
+else {
+    CFRunLoopSourceRef source1 = __CFRunLoopModeFindSourceForMachPort(runloop, currentMode, livePort); sourceHandledThisLoop = __CFRunLoopDoSource1(runloop, currentMode, source1, msg);
+    if (sourceHandledThisLoop) {
+        mach_msg(reply, MACH_SEND_MSG, reply);
+    }
+}
+```
+
+> 第七步
+根据当前`RunLoop`的状态来判断是否需要走下一个`loop`。当被外部强制停止或`loop`超时时，就不继续下一个`loop`了，否则继续走下一个`loop`。
+
+代码如下:
+```
+if (sourceHandledThisLoop && stopAfterHandle) {
+      // 事件已处理完
+    retVal = kCFRunLoopRunHandledSource;
+} else if (timeout) {
+    // 超时
+    retVal = kCFRunLoopRunTimedOut;
+} else if (__CFRunLoopIsStopped(runloop)) {
+    // 外部调用者强制停止
+    retVal = kCFRunLoopRunStopped;
+} else if (__CFRunLoopModeIsEmpty(runloop, currentMode)) {
+    // mode 为空，RunLoop 结束
+    retVal = kCFRunLoopRunFinished;
+}
+```
+整个`RunLoop`过程，如下所示:
+![RunLoop过程图](https://github.com/binzi56/iOSSmallKnowledgePool/blob/master/整理的小知识点/resources/runloop过程图.png)
+
+#### 2.2.2 如何监控
+要想监听 RunLoop，你就首先需要创建一个 CFRunLoopObserverContext 观察者，代码如下:
+```
+CFRunLoopObserverContext context = {0,(__bridge void*)self,NULL,NULL};
+runLoopObserver = CFRunLoopObserverCreate(kCFAllocatorDefault,kCFRunLoopAllActivities,YES,0,&runLoopObserverCatton)
+```
+将创建好的观察者`runLoopObserver`添加到主线程 `RunLoop` 的 `common` 模式下观察。然后，创建一个持续的子线程专⻔用来监控主线程的 `RunLoop`状态。
+一旦发现进入睡眠前的 `kCFRunLoopBeforeSources` 状态，或者唤醒后的状态 `kCFRunLoopAfterWaiting`，在设置的时间阈值 内一直没有变化，即可判定为卡顿。接下来，我们就可以 `dump` 出堆栈的信息，从而进一步分析出具体是哪个方法的执行时间过⻓。
+```
+//创建子线程监控
+dispatch_async(dispatch_get_global_queue(0, 0), ^{
+	//子线程开启一个持续的 loop 用来进行监控
+	while (YES) {
+    long semaphoreWait = dispatch_semaphore_wait(dispatchSemaphore, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_MSEC));
+    if (semaphoreWait != 0) {
+			if (!runLoopObserver) {
+				timeoutCount = 0;
+				dispatchSemaphore = 0;
+				runLoopActivity = 0;
+				return;
+		    }
+		    //BeforeSources 和 AfterWaiting 这两个状态能够检测到是否卡顿
+			if (runLoopActivity == kCFRunLoopBeforeSources || runLoopActivity == kCFRunLoopAfterWaiting) {
+				//将堆栈信息上报服务器的代码放到这里
+			} //end activity
+		}// end semaphore wait
+		timeoutCount = 0;
+	}// end while
+});
+
+```
+
+其实，触发卡顿的时间阈值，我们可以根据`WatchDog`机制来设置。`WatchDog`在不同状态下设置的不同时间，如下所示:
+* 启动(Launch):20s;
+* 恢复(Resume):10s;
+* 挂起(Suspend):10s;
+* 退出(Quit):6s;
+* 后台(Background):3min(在iOS 7之前，每次申请10min; 之后改为每次申请3min，可连续申请，最多申请到 10min)。
+通过`WatchDog`设置的时间，我认为可以把启动的阈值设置为10秒，其他状态则都默认设置为3秒。总的原则就是，要小于`WatchDog`的限制时间。
+
+#### 2.3 获取卡顿的方法堆栈信息
+* **直接调用系统函数**。
+这种方法的优点在于，性能消耗小。但是，它只能够获取简单的信息，也没有 办法配合 dSYM 来获取具体是哪行代码出了问题，而且能够获取的信息类型也有限。这种方法，因为性能比较好，所以适用 于观察大盘统计卡顿情况，而不是想要找到卡顿原因的场景。
+主要思路是:用 `signal` 进行错误信息的获取。
+
+* **直接用[`PLCrashReporter`](https://opensource.plausible.coop/src/projects/PLCR/repos/plcrashreporter/browse)这个开源的第三方库来获取堆栈信息**。
+这种方法的特点是，能够定位到问题代码的具体位置，而且性能消耗也不大。所以，也是我推荐的获取堆栈信息的方法。
