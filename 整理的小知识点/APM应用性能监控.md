@@ -212,7 +212,12 @@ if (sourceHandledThisLoop && stopAfterHandle) {
 要想监听 RunLoop，你就首先需要创建一个 CFRunLoopObserverContext 观察者，代码如下:
 ```
 CFRunLoopObserverContext context = {0,(__bridge void*)self,NULL,NULL};
-runLoopObserver = CFRunLoopObserverCreate(kCFAllocatorDefault,kCFRunLoopAllActivities,YES,0,&runLoopObserverCatton)
+runLoopObserver = CFRunLoopObserverCreate(kCFAllocatorDefault,
+                                              kCFRunLoopAllActivities,
+                                              YES,
+                                              0,
+                                              &runLoopObserverCallBack,
+                                              &context);
 ```
 将创建好的观察者`runLoopObserver`添加到主线程 `RunLoop` 的 `common` 模式下观察。然后，创建一个持续的子线程专⻔用来监控主线程的 `RunLoop`状态。
 一旦发现进入睡眠前的 `kCFRunLoopBeforeSources` 状态，或者唤醒后的状态 `kCFRunLoopAfterWaiting`，在设置的时间阈值 内一直没有变化，即可判定为卡顿。接下来，我们就可以 `dump` 出堆栈的信息，从而进一步分析出具体是哪个方法的执行时间过⻓。
@@ -241,11 +246,11 @@ dispatch_async(dispatch_get_global_queue(0, 0), ^{
 ```
 
 其实，触发卡顿的时间阈值，我们可以根据`WatchDog`机制来设置。`WatchDog`在不同状态下设置的不同时间，如下所示:
-* 启动(Launch):20s;
-* 恢复(Resume):10s;
-* 挂起(Suspend):10s;
-* 退出(Quit):6s;
-* 后台(Background):3min(在iOS 7之前，每次申请10min; 之后改为每次申请3min，可连续申请，最多申请到 10min)。
+* 启动(Launch):`20s`;
+* 恢复(Resume):`10s`;
+* 挂起(Suspend):`10s`;
+* 退出(Quit):`6s`;
+* 后台(Background):`3min`(在iOS 7之前，每次申请`10min`; 之后改为每次申请`3min`，可连续申请，最多申请到`10min`)。
 通过`WatchDog`设置的时间，我认为可以把启动的阈值设置为10秒，其他状态则都默认设置为3秒。总的原则就是，要小于`WatchDog`的限制时间。
 
 #### 2.3 获取卡顿的方法堆栈信息
