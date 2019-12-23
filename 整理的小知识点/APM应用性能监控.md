@@ -70,3 +70,89 @@ yourTask 任务最多执行3分钟，3分钟内 yourTask 运行完成，你的 A
 * `0x8badf00d`，表示 App 在一定时间内无响应而被`watchdog`杀掉的情况。
 * `0xdeadfa11`，表示App被用户强制退出。
 * `0xc00010ff`，表示App因为运行造成设备温度太高而被杀掉。
+
+### 2. 卡顿
+#### 2.1 原因
+* 复杂 UI 、图文混排的绘制量过大;
+* 在主线程上做网络同步请求;
+* 在主线程做大量的IO 操作;
+* 运算量过大，CPU持续高占用;
+* 死锁和主子线程抢锁。
+
+#### 2.2 RunLoop监测卡顿
+#### 2.2.1 原理
+> **第一步**
+通知 `observers`:`RunLoop` 要开始进入 `loop` 了。紧接着就进入 `loop`。
+
+代码如下:
+```
+//通知 observers
+if (currentMode->_observerMask & kCFRunLoopEntry )
+__CFRunLoopDoObservers(runloop, currentMode, kCFRunLoopEntry);
+//进入 loop
+result = __CFRunLoopRun(rl, currentMode, seconds, returnAfterSourceHandled, previousMode);
+```
+> **第二步**
+开启一个 `do while` 来保活线程。通知 `Observers`:`RunLoop` 会触发 `Timer` 回调、`Source0` 回调，接着执行加入的 `block`。
+
+代码如下:
+```
+// 通知 Observers RunLoop 会触发 Timer 回调
+if (currentMode->_observerMask & kCFRunLoopBeforeTimers)
+__CFRunLoopDoObservers(runloop, currentMode, kCFRunLoopBeforeTimers);
+
+// 通知 Observers RunLoop 会触发 Source0 回调
+if (currentMode->_observerMask & kCFRunLoopBeforeSources)
+__CFRunLoopDoObservers(runloop, currentMode, kCFRunLoopBeforeSources);
+
+// 执行 block
+__CFRunLoopDoBlocks(runloop, currentMode);
+```
+接下来，触发 `Source0` 回调，如果有 `Source1` 是 `ready` 状态的话，就会跳转到 `handle_msg`去处理消息。代码如下:
+```
+if (MACH_PORT_NULL != dispatchPort ) {
+    Boolean hasMsg = __CFRunLoopServiceMachPort(dispatchPort, &msg)
+    if (hasMsg) goto handle_msg;
+}
+```
+
+> **第三步**
+回调触发后，通知 `Observers`:`RunLoop`的线程将进入休眠(`sleep`)状态。
+
+代码如下:
+```
+Boolean poll = sourceHandledThisLoop || (0ULL == timeout_context->termTSR);
+if (!poll && (currentMode->_observerMask & kCFRunLoopBeforeWaiting)) {
+    __CFRunLoopDoObservers(runloop, currentMode, kCFRunLoopBeforeWaiting);
+}
+```
+
+> **第四步**
+进入休眠后，会等待 `mach_port` 的消息，以再次唤醒。只有在下面四个事件出现时才会被再次唤醒:
+* 基于 `port` 的 `Source` 事件
+* `Timer` 时间到
+* `RunLoop` 超时
+* 被调用者唤醒
+
+等待唤醒的代码如下:
+```
+do {
+    __CFRunLoopServiceMachPort(waitSet, &msg, sizeof(msg_buffer), &livePort) {
+        // 基于 port 的 Source 事件、调用者唤醒
+        if (modeQueuePort != MACH_PORT_NULL && livePort == modeQueuePort) {
+            break;
+        }
+        // Timer 时间到、RunLoop 超时
+        if (currentMode->_timerFired) {
+            break;
+        }
+} while (1);
+```
+
+> 第五步
+唤醒时通知 `Observer`:`RunLoop` 的线程刚刚被唤醒了。
+
+代码如下:
+```
+if (!poll && (currentMode->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(runloop, currentMode, kCFRunLoopAfterWaiting);
+```
