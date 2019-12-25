@@ -260,3 +260,7 @@ dispatch_async(dispatch_get_global_queue(0, 0), ^{
 
 * **直接用[`PLCrashReporter`](https://opensource.plausible.coop/src/projects/PLCR/repos/plcrashreporter/browse)这个开源的第三方库来获取堆栈信息**。
 这种方法的特点是，能够定位到问题代码的具体位置，而且性能消耗也不大。所以，也是我推荐的获取堆栈信息的方法。
+
+### 3. 内存
+**OOM**(`Out of Memory`)
+#### 3.1 原因
