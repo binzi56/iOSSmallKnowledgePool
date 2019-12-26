@@ -262,5 +262,5 @@ dispatch_async(dispatch_get_global_queue(0, 0), ^{
 这种方法的特点是，能够定位到问题代码的具体位置，而且性能消耗也不大。所以，也是我推荐的获取堆栈信息的方法。
 
 ### 3. 内存
-**OOM**(`Out of Memory`)
+**OOM**(`Out of Memory`)是App占用内存达到了iOS系统对单个App占用内存上限后,而被系统强杀掉的现象;
 #### 3.1 原因
