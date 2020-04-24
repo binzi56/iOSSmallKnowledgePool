@@ -285,7 +285,7 @@ iOS系统在强杀App之前还有`6s`时间, 足够去获取内存信息了.
 
 macOS没有强杀系统应用是因为手持设备存储空间小, 所以在iOS系统里去掉了交换空间, 这样就没法记录到外部设备上.但是苹果引入了`MemoryStatus`机制.
 思路就是在iOS系统中弹出尽可能多的内存供当前应用使用.优先级是先强杀后台应用;如果内存还不够就强杀掉当前应用.而在macOS系统中, `MemoryStatus`只会强杀掉标记为空闲退出的进程.
-在实现上`MemoryStatus`机制会开启一个`memorystatus_jetsam_thread`的现场, 这个线程和内存压力检测线程`vm_preasure_monitor`没有联系, 只负责强杀应用和记录日志, 不会发送消息, 所以内存压力检测线程无法获取到强杀应用线程的消息.
+在实现上`MemoryStatus`机制会开启一个`memorystatus_jetsam_thread`的线程, 这个线程和内存压力检测线程`vm_preasure_monitor`没有联系, 只负责强杀应用和记录日志, 不会发送消息, 所以内存压力检测线程无法获取到强杀应用线程的消息.
 
 ![其他内存问题](./resources/OOM_Memory_other_problem.png)
 
