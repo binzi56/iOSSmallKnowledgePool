@@ -2,8 +2,9 @@
 本篇打算介绍Xcode最强性能检测工具`Instrument`,有任何问题欢迎[issue](https://github.com/binzi56/iOSSmallKnowledgePool/issues);
 
 ### 内存泄漏三种场景对比
-区别:
+**区别:**
 1. Strong reference
+
 statistics
 #Total#Persistent
 一直累加
@@ -15,6 +16,7 @@ statistics
 页面反复push. pop
 
 2. Block retain cycle
+
 statistics
 #Total#Persistent
 一直累加
@@ -36,6 +38,7 @@ normal
 
 
 3. NSTimer retain cycle
+
 statistics
 #Total#Persistent
 一直累加
@@ -47,6 +50,7 @@ statistics
 页面反复push. pop
 
 4.normal
+
 退出界面dealloc立即调用
 Allocation -> statistics ->  Allocation Summary
 #Total
@@ -61,7 +65,7 @@ Allocation -> statistics ->  Allocation Summary
 
 页面反复push. pop
 
-共同点:
+**共同点:**
 Allocation -> statistics ->  Allocation Summary
 
 statistics
