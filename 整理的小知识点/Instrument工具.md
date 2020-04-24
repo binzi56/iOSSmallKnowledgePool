@@ -24,7 +24,9 @@ statistics
 0
 
 点击❌位置
+
 Leaks -> Cycles&Roots -> LeakCycles   (内存泄漏示意图)
+
 Leaks -> Call Tree ->  Call Tree(invert call tree && Hide system libraries)
 
 ![](./resources/BlockRetainCycle.png)
@@ -52,7 +54,9 @@ statistics
 4.normal
 
 退出界面dealloc立即调用
+
 Allocation -> statistics ->  Allocation Summary
+
 #Total
 一直累加
 #Persistent
