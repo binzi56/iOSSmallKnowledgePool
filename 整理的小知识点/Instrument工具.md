@@ -3,16 +3,18 @@
 
 ### 内存泄漏三种场景对比
 区别:
-1.Strong reference
+1. Strong reference
 statistics
 #Total#Persistent
 一直累加
 #Transient
 0
+
 ![](./resources/StrongReference.png)
+
 页面反复push. pop
 
-2.Block retain cycle
+2. Block retain cycle
 statistics
 #Total#Persistent
 一直累加
@@ -23,19 +25,24 @@ statistics
 Leaks -> Cycles&Roots -> LeakCycles   (内存泄漏示意图)
 Leaks -> Call Tree ->  Call Tree(invert call tree && Hide system libraries)
 
+![](./resources/BlockRetainCycle.png)
+
 unNormal
+
+![](./resources/BlockNormal.png)
 
 normal
 页面反复push. pop
 
 
-3.NSTimer retain cycle
+3. NSTimer retain cycle
 statistics
 #Total#Persistent
 一直累加
 #Transient
 0
 
+![](./resources/NSTimerRetainCycle.png)
 
 页面反复push. pop
 
@@ -49,6 +56,8 @@ Allocation -> statistics ->  Allocation Summary
 #Transient
 (#Total - #Persistent)
 注: 退出界面消失
+
+![](./resources/normal.png)
 
 页面反复push. pop
 
@@ -64,3 +73,5 @@ statistics
 
 组合:
 Strong reference + Block retain cycle
+
+![](./resources/TwoSituation.png)
