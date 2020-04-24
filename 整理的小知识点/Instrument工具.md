@@ -9,7 +9,7 @@ statistics
 一直累加
 #Transient
 0
-
+![](./resources/StrongReference.png)
 页面反复push. pop
 
 2.Block retain cycle
