@@ -264,3 +264,60 @@ dispatch_async(dispatch_get_global_queue(0, 0), ^{
 ### 3. 内存
 **OOM**(`Out of Memory`)是App占用内存达到了iOS系统对单个App占用内存上限后,而被系统强杀掉的现象;
 #### 3.1 原因
+
+
+### 4. 耗电量
+#### 4.1 如何获取电量
+在iOS中，`IOKit framework` 是专⻔用于跟硬件或内核服务通信的。所以，我们可以通过`IOKit framework` 来获取硬件信息，进而获取到电量消耗信息。
+
+#### 4.2 如何诊断电量问题
+回到最开始的问题，当你用排除法将所有功能注释掉后，如果还有问题，那么这个耗电一定是由其他线程引起的。创建这个耗 电线程的地方可能是在其他地方，比如是由第三方库引起，或者是公司其他团队开发的二方库。
+通过下面的这段代码，你就可以获取到所有线程的信息:
+```
+    thread_act_array_t threads;
+    mach_msg_type_number_t threadCount = 0;
+    const task_t thisTask = mach_task_self();
+    kern_return_t kr = task_threads(thisTask, &threads, &threadCount);
+```
+
+`threads` 数组里的线程信息结构体 `thread_basic_info` 里有一个记录 `CPU` 使用百分比的字段 `cpu_usage`。`thread_basic_info`结构体中包含`cpu_usage`(`CPU`使用百分比), 有了这个 `cpu_usage` 字段，你就可以通过遍历所有线程，去查看是哪个线程的 `CPU` 使用百分比过高了。如果某个线程的 `CPU`使用率⻓时间都比较高的话，比如 **超过了90%**，就能够推断出它是有问题的。
+
+多线程 `CPU` 使用率检查的完整代码如下:
+```
+// 轮询检查多个线程 CPU 情况 + (void)updateCPU {
+    thread_act_array_t threads;
+    mach_msg_type_number_t threadCount = 0;
+    const task_t thisTask = mach_task_self();
+    kern_return_t kr = task_threads(thisTask, &threads, &threadCount);
+    if (kr != KERN_SUCCESS) {
+        return;
+    }
+    for (int i = 0; i < threadCount; i++) {
+        thread_info_data_t threadInfo;
+        thread_basic_info_t threadBaseInfo;
+        mach_msg_type_number_t threadInfoCount = THREAD_INFO_MAX;
+        if (thread_info((thread_act_t)threads[i], THREAD_BASIC_INFO, (thread_info_t)threadInfo, &threadInfoCou
+        threadBaseInfo = (thread_basic_info_t)threadInfo; if (!(threadBaseInfo->flags & TH_FLAGS_IDLE)) {
+            integer_t cpuUsage = threadBaseInfo->cpu_usage / 10; if (cpuUsage > 90) {
+            //cup 消耗大于 90 时打印和记录堆栈
+            NSString *reStr = smStackOfThread(threads[i]);
+            //记录数据库中
+            [[[SMLagDB shareInstance] increaseWithStackString:reStr] subscribeNext:^(id x) {}]; NSLog(@"CPU useage overload thread stack:\n%@",reStr);
+        } }
+    } }
+}
+```
+
+#### 4.3 原因
+* `CPU`处理大量数据的复杂计算
+对 `CPU` 的使用要精打细算，要避免让 `CPU` 做多余的事情。对于大量数据的复杂计算，应该把数据传到服务器去处理，如果 必须要在 `App` 内处理复杂数据计算，可以通过 GCD 的 `dispatch_block_create_with_qos_class` 方法指定队列的 `Qos` 为 `QOS_CLASS_UTILITY`，将计算工作放到这个队列的 `block` 里。在 `QOS_CLASS_UTILITY` 这种 `Qos` 模式下，系统针对大量数据的计算，以及复杂数据处理专⻔做了电量优化。
+* 任何的 `I/O` 操作，都会破坏掉低功耗状态
+业内的普遍做法是，将碎片化的数据磁盘存储操作延后，先在内存中聚合，然后再进行磁盘存储。碎片化的数据进行聚合，在
+内存中进行存储的机制，可以使用系统自带的 `NSCache` 来完成。
+`NSCache` 是线程安全的，`NSCache` 会在到达预设缓存空间值时清理缓存，这时会触发 `cache:willEvictObject:` 方法的回调， 在这个回调里就可以对数据进行 `I/O` 操作，达到将聚合的数据 `I/O` 延后的目的。`I/O` 操作的次数减少了，对电量的消耗也就减少了。
+例如:SDWebImage读取缓存的时候就用的`NSCache`。
+
+除了`CPU` 和 `I/O` 这两大耗电问题，还有什么要注意的呢?
+苹果公司专⻔维护了一个电量优化指南“[Energy Efficiency Guide for iOS Apps](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/)”，分别从 `CPU`、设备唤醒、网络、图形、动 画、视频、定位、加速度计、陀螺仪、磁力计、蓝牙等多方面因素提出了电量优化方面的建议。所以，当使用了苹果公司的电 量优化指南里提到的功能时，严格按照指南里的最佳实践去做就能够保证这些功能不会引起不合理的电量消耗。
+
+* [WWDC:Writing Energy Efficient Apps](https://developer.apple.com/videos/play/wwdc2017/238/)
