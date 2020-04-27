@@ -116,3 +116,14 @@ NSMutableDictionary *aDictionary = [[NSMutableDictionary alloc] initWithCapacity
 或
 NSMutableDictionary *aDictionary = [NSMutableDictionary dictionary];
 ```
+
+#### 1.`NSDictionary`
+由于对象存储在特定位置，`NSDictionary`中要求`key`的值不能改变（否则`object`的位置会错误）。为了保证这一点，`NSDictionary`会始终复制`key`到自己私有空间。
+这个`key`的复制行为也是`NSDictionary`如何工作的基础，但是这也有一个限制：你只能使用OC对象作为`NSDictionary`的`key`，并且必须支持`NSCopying`协议，我们也可以从上面的方法中看到。此外，`key`应该是 **小并且高效的**，以至于复制的时候 **不会对CPU和内存造成负担** 。
+
+#### 2.`NSMapTable`
+* 与`NSDictionary`一样，以键值对的方式存储内容；
+* `key` 可以不用遵循 `NSCopying` 协议；
+* `key` 和 `value` 的内存管理方式可以分开，如：`key` 是强引用，`value` 是弱引用；
+
+* [Cocoa 集合类型：NSPointerArray，NSMapTable，NSHashTable](http://www.saitjr.com/ios/nspointerarray-nsmaptable-nshashtable.html#%E5%B0%8F%E7%BB%93)
