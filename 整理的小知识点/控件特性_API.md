@@ -99,3 +99,20 @@ eg:
 * `CPU`在切换线程上下文时，还会更新 **寄存器**，更新寄存器的时候需要 **寻址**，而寻址的过程还会有较大的`CPU` 消耗。
 
 所以，线程过多时内存和`CPU`都会有大量的消耗，从而导致`App`整体性能降低，使得用户体验变成差。CPU 和内存的使用 **超出系统限制** 时，甚至会造成 **系统强杀**。这种情况对用户和`App`的伤害就更大了。
+
+## `NSMapTable`与`NSDictionary`/`NSMutableDictionary`对比
+* 可变类型: `NSDcitionary`有一个可变类型`NSMutableDictionary`，`NSMapTable`没有可变类型，它本身就是可变的;
+* 使用限制: `NSDcitionary`/`NSMutableDictionary`中对于key和value的内存管理方法唯一，即对`key`进行`copy`，对`value`进行强引用，而`NSMapTable`没有限制；
+* 映射关系: `NSDcitionary`中对`key`值进行`copy`，不可改变，通常用字符串作为`key`值，只是`key->object`的映射，而`NSMapTable`的`key`是可变的对象，既可以实现`key->object`的映射，又可以实现`object->object`的映射;
+
+```
+NSMapTable *aMapTable = [[NSMapTable alloc] initWithKeyOptions:NSPointerFunctionsCopyIn valueOptions:NSPointerFunctionsStrongMemory capacity:0];
+或
+NSMapTable *aMapTable = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsCopyIn valueOptions:NSPointerFunctionsStrongMemory];
+```
+等同于
+```
+NSMutableDictionary *aDictionary = [[NSMutableDictionary alloc] initWithCapacity:0];
+或
+NSMutableDictionary *aDictionary = [NSMutableDictionary dictionary];
+```
