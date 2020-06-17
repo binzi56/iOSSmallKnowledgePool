@@ -1,6 +1,7 @@
 # Instrument工具
 本篇打算介绍Xcode最强性能检测工具`Instrument`,有任何问题欢迎[issue](https://github.com/binzi56/iOSSmallKnowledgePool/issues);
 
+## Leaks
 ### 内存泄漏三种场景对比
 **区别:**
 1. Strong reference
@@ -84,3 +85,6 @@ statistics
 Strong reference + Block retain cycle
 
 ![](./resources/TwoSituation.png)
+
+## System Trace
+## Time Proflier
