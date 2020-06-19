@@ -206,6 +206,7 @@ if (sourceHandledThisLoop && stopAfterHandle) {
 }
 ```
 整个`RunLoop`过程，如下所示:
+
 ![RunLoop过程图](https://github.com/binzi56/iOSSmallKnowledgePool/blob/master/整理的小知识点/resources/runloop过程图.png)
 
 #### 2.2.2 如何监控
