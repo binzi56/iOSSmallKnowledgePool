@@ -342,6 +342,6 @@ macOS没有强杀系统应用是因为手持设备存储空间小, 所以在iOS�
 例如:SDWebImage读取缓存的时候就用的`NSCache`。
 
 除了`CPU` 和 `I/O` 这两大耗电问题，还有什么要注意的呢?
-苹果公司专⻔维护了一个电量优化指南“[Energy Efficiency Guide for iOS Apps](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/)”，分别从 `CPU`、设备唤醒、网络、图形、动 画、视频、定位、加速度计、陀螺仪、磁力计、蓝牙等多方面因素提出了电量优化方面的建议。所以，当使用了苹果公司的电 量优化指南里提到的功能时，严格按照指南里的最佳实践去做就能够保证这些功能不会引起不合理的电量消耗。
+苹果公司专⻔维护了一个电量优化指南“[Energy Efficiency Guide for iOS Apps](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/)”，分别从 `CPU`、设备唤醒、网络、图形、动 画、视频、定位、加速度计、陀螺仪、磁力计、蓝牙等多方面因素提出了电量优化方面的建议。所以，当使用了苹果公司的电量优化指南里提到的功能时，严格按照指南里的最佳实践去做就能够保证这些功能不会引起不合理的电量消耗。
 
 * [WWDC:Writing Energy Efficient Apps](https://developer.apple.com/videos/play/wwdc2017/238/)
