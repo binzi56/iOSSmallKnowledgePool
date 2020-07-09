@@ -71,6 +71,8 @@ yourTask 任务最多执行3分钟，3分钟内 yourTask 运行完成，你的 A
 * `0xdeadfa11`，表示App被用户强制退出。
 * `0xc00010ff`，表示App因为运行造成设备温度太高而被杀掉。
 
+* [iOS crash 问题分析汇总](https://blog.csdn.net/kyl282889543/article/details/85675138)
+
 ### 2. 卡顿
 #### 2.1 原因
 * 复杂 UI 、图文混排的绘制量过大;
